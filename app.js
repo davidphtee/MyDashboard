@@ -35,6 +35,110 @@ const CONFIG = {
   refreshInterval: 60000,
 };
 
+// ── Card registry — defines every possible card type ──────────────────
+// Add new card types here; they will automatically appear in the panel.
+// refresh lambdas reference async functions declared later (hoisted).
+const CARD_REGISTRY = [
+  {
+    type:         'clock',
+    configKey:    'card_clock',
+    titleKey:     'title_clock',
+    defaultTitle: 'Clock',
+    description:  'World clock with multiple timezones',
+    listId:       null,
+    refresh:      null,   // clock is driven by setInterval, not data fetch
+  },
+  {
+    type:         'weather',
+    configKey:    'card_weather',
+    titleKey:     'title_weather',
+    defaultTitle: 'Weather',
+    description:  'Current weather for locations',
+    listId:       'weather-list',
+    refresh:      () => refreshWeather(),
+  },
+  {
+    type:         'crypto',
+    configKey:    'card_crypto',
+    titleKey:     'title_crypto',
+    defaultTitle: 'Crypto',
+    description:  'Cryptocurrency prices',
+    listId:       'crypto-list',
+    refresh:      () => refreshCrypto(),
+  },
+  {
+    type:         'markets',
+    configKey:    'card_markets',
+    titleKey:     'title_markets',
+    defaultTitle: 'Global Markets',
+    description:  'Stock market indices',
+    listId:       'indices-global-list',
+    refresh:      () => refreshFinnhubGroup('indices-global-list', CONFIG.indicesGlobal),
+  },
+  {
+    type:         'forex_gbp',
+    configKey:    'card_forex_gbp',
+    titleKey:     'title_forex_gbp',
+    defaultTitle: 'Forex vs GBP',
+    description:  'Foreign exchange rates vs GBP',
+    listId:       'forex-gbp-list',
+    refresh:      () => refreshForexCard('forex-gbp-list', 'GBP', CONFIG.forexGBP),
+  },
+  {
+    type:         'news',
+    configKey:    'card_news',
+    titleKey:     'title_news',
+    defaultTitle: 'News',
+    description:  'BBC News headlines',
+    listId:       'news-list',
+    refresh:      () => refreshNews(),
+  },
+];
+
+// ── News feed menu structure ──────────────────────────────────────────
+const NEWS_MENU = [
+  {
+    label: 'News',
+    items: [
+      { label: 'Top Stories',       page: '101' },
+      { label: 'UK',                page: '102' },
+      { label: 'World',             page: '103' },
+      { label: 'England',           page: '104' },
+      { label: 'Scotland',          page: '105' },
+      { label: 'Wales',             page: '106' },
+      { label: 'N. Ireland',        page: '107' },
+      { label: 'Africa',            page: '108' },
+      { label: 'Asia',              page: '109' },
+      { label: 'Europe',            page: '110' },
+      { label: 'Latin America',     page: '111' },
+      { label: 'Middle East',       page: '112' },
+      { label: 'US & Canada',       page: '113' },
+      { label: 'Business',          page: '114' },
+      { label: 'Politics',          page: '115' },
+      { label: 'Health',            page: '116' },
+      { label: 'Education',         page: '117' },
+      { label: 'Science',           page: '118' },
+      { label: 'Technology',        page: '119' },
+      { label: 'Entertainment',     page: '120' },
+    ],
+  },
+  {
+    label: 'Sport',
+    items: [
+      { label: 'Sport',       page: '121' },
+      { label: 'Rugby Union', page: '136' },
+      { label: 'Tennis',      page: '137' },
+      { label: 'Cricket',     page: '138' },
+      { label: 'Snooker',     page: '139' },
+      { label: 'Winter Olympics', page: '140' },
+    ],
+  },
+  {
+    label: 'Weather',
+    page: '122',  // direct — no submenu
+  },
+];
+
 // Clock zones are mutable (add/delete at runtime)
 let CLOCK_ZONES = [
   { label: 'Local',  tz: Intl.DateTimeFormat().resolvedOptions().timeZone, configKey: 'clock_Local'  },
@@ -392,6 +496,143 @@ async function refreshForexCard(listId, base, items) {
   } catch (e) {
     setError(listId, `Forex data unavailable: ${e.message}`);
   }
+}
+
+// =========================================================
+// NEWS  (via api/news.php → BBC RSS feeds)
+// =========================================================
+
+function timeAgo(date) {
+  const diff = Math.floor((Date.now() - date) / 1000);
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+async function refreshNews() {
+  const listId = 'news-list';
+  const container = document.getElementById(listId);
+  if (!container) return;
+  try {
+    const page = CONFIG.news_page || '101';
+    const res  = await fetch(`api/news.php?page=${encodeURIComponent(page)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const SHOW_INITIAL = 5;
+    container.innerHTML = data.items.map((item, i) => {
+      const pub    = new Date(item.pubDate);
+      const when   = isNaN(pub) ? '' : timeAgo(pub);
+      const hidden = i >= SHOW_INITIAL ? ' news-item--hidden' : '';
+      return `
+        <div class="news-item${hidden}">
+          <a class="news-title" href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a>
+          <p class="news-desc">${item.description}</p>
+          <span class="news-time">${when}</span>
+        </div>`;
+    }).join('');
+
+    const remaining = data.items.length - SHOW_INITIAL;
+    if (remaining > 0) {
+      const btn = document.createElement('button');
+      btn.className = 'news-more-btn';
+      btn.textContent = `Show ${remaining} more`;
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.news-item--hidden').forEach(el => el.classList.remove('news-item--hidden'));
+        btn.remove();
+      });
+      container.appendChild(btn);
+    }
+  } catch (e) {
+    setError(listId, `News unavailable: ${e.message}`);
+  }
+}
+
+/** Re-renders the news menu tabs, preserving active state from CONFIG.news_page. */
+function renderNewsMenu() {
+  const nav = document.getElementById('news-menu');
+  if (!nav) return;
+  const current = CONFIG.news_page || '101';
+
+  nav.innerHTML = NEWS_MENU.map((group, gi) => {
+    if (group.page) {
+      // Direct item — no dropdown
+      const active = current === group.page;
+      return `<button class="news-tab${active ? ' active' : ''}" data-page="${group.page}">${group.label}</button>`;
+    }
+    // Group with submenu
+    const hasActive = group.items.some(i => i.page === current);
+    return `
+      <div class="news-tab-group">
+        <button class="news-tab${hasActive ? ' active' : ''}" data-group="${gi}">
+          ${group.label}<i class="bi bi-chevron-down news-tab-chevron ms-1"></i>
+        </button>
+        <div class="news-dropdown" id="news-dd-${gi}" style="display:none">
+          ${group.items.map(item => `
+            <button class="news-dropdown-item${item.page === current ? ' active' : ''}"
+                    data-page="${item.page}">${item.label}</button>`
+          ).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function selectNewsPage(page) {
+  CONFIG.news_page = page;
+  renderNewsMenu();                              // update active state immediately
+  setLoading('news-list');
+  await refreshNews();
+  saveConfig('news_page', page).catch(() => {}); // persist in background
+}
+
+function initNewsMenu() {
+  renderNewsMenu();
+
+  const nav = document.getElementById('news-menu');
+  if (!nav) return;
+
+  // Close all dropdowns when clicking outside the menu
+  document.addEventListener('click', () => {
+    nav.querySelectorAll('.news-dropdown').forEach(d => d.style.display = 'none');
+    nav.querySelectorAll('.news-tab-chevron').forEach(c => c.classList.remove('open'));
+  });
+
+  nav.addEventListener('click', e => {
+    e.stopPropagation(); // prevent above document handler from firing
+
+    // Direct page button (Weather, or a dropdown item)
+    const item = e.target.closest('.news-dropdown-item');
+    if (item) { selectNewsPage(item.dataset.page); return; }
+
+    // Tab with dropdown group
+    const tab = e.target.closest('.news-tab');
+    if (!tab) return;
+
+    if (tab.dataset.page) {
+      // Direct tab (e.g. Weather)
+      selectNewsPage(tab.dataset.page);
+      return;
+    }
+
+    // Toggle the dropdown for this group
+    const gi      = tab.dataset.group;
+    const dd      = document.getElementById(`news-dd-${gi}`);
+    const chevron = tab.querySelector('.news-tab-chevron');
+    if (!dd) return;
+
+    const opening = dd.style.display === 'none';
+
+    // Close all other open dropdowns first
+    nav.querySelectorAll('.news-dropdown').forEach(d => d.style.display = 'none');
+    nav.querySelectorAll('.news-tab-chevron').forEach(c => c.classList.remove('open'));
+
+    if (opening) {
+      dd.style.display = 'block';
+      chevron?.classList.add('open');
+    }
+  });
 }
 
 // =========================================================
@@ -774,17 +1015,133 @@ function initCardTitles() {
 }
 
 // =========================================================
+// CARD SHOW / HIDE
+// =========================================================
+
+function isCardHidden(type) {
+  return Array.isArray(CONFIG.hidden_cards) && CONFIG.hidden_cards.includes(type);
+}
+
+/** Apply visibility on load from stored config. */
+function applyCardVisibility() {
+  CARD_REGISTRY.forEach(card => {
+    const col = document.querySelector(`[data-config-key="${card.configKey}"]`);
+    if (col) col.style.display = isCardHidden(card.type) ? 'none' : '';
+  });
+}
+
+async function hideCard(type) {
+  const hidden = Array.isArray(CONFIG.hidden_cards) ? [...CONFIG.hidden_cards] : [];
+  if (!hidden.includes(type)) {
+    hidden.push(type);
+    CONFIG.hidden_cards = hidden;
+    await saveConfig('hidden_cards', hidden);
+  }
+  const card = CARD_REGISTRY.find(c => c.type === type);
+  if (card) {
+    document.querySelector(`[data-config-key="${card.configKey}"]`)?.style.setProperty('display', 'none');
+  }
+  renderCardsPanel();
+}
+
+async function showCard(type) {
+  const hidden = (Array.isArray(CONFIG.hidden_cards) ? CONFIG.hidden_cards : []).filter(t => t !== type);
+  CONFIG.hidden_cards = hidden;
+  await saveConfig('hidden_cards', hidden);
+
+  const card = CARD_REGISTRY.find(c => c.type === type);
+  if (!card) return;
+
+  document.querySelector(`[data-config-key="${card.configKey}"]`)?.style.removeProperty('display');
+
+  // Refresh the card's data now that it's visible
+  if (card.listId) setLoading(card.listId);
+  if (card.refresh) await card.refresh();
+
+  renderCardsPanel();
+}
+
+/** Render (or re-render) the manage-cards panel contents. */
+function renderCardsPanel() {
+  const panel = document.getElementById('cards-panel');
+  if (!panel) return;
+
+  panel.innerHTML = `
+    <div class="cards-panel-header">Manage Cards</div>
+    ${CARD_REGISTRY.map(card => {
+      const hidden = isCardHidden(card.type);
+      return `
+        <div class="cards-panel-item">
+          <div class="cards-panel-info">
+            <span class="cards-panel-name">${card.defaultTitle}</span>
+            <span class="cards-panel-desc">${card.description}</span>
+          </div>
+          <button class="cards-panel-btn cards-panel-btn--${hidden ? 'show' : 'hide'}"
+                  data-card-type="${card.type}">
+            <i class="bi bi-eye${hidden ? '' : '-slash'}"></i>
+            ${hidden ? 'Show' : 'Hide'}
+          </button>
+        </div>`;
+    }).join('')}`;
+}
+
+function initCardManagement() {
+  // Inject a × hide button into every registered card's header row
+  CARD_REGISTRY.forEach(card => {
+    const col = document.querySelector(`[data-config-key="${card.configKey}"]`);
+    if (!col) return;
+    const headerRow = col.querySelector('.card-header-row');
+    if (!headerRow) return;
+    const btn = document.createElement('button');
+    btn.className = 'hide-card-btn';
+    btn.dataset.cardType = card.type;
+    btn.title = 'Hide card';
+    btn.innerHTML = '<i class="bi bi-x"></i>';
+    headerRow.appendChild(btn);
+  });
+
+  // Delegate hide-button clicks on the cards row
+  document.getElementById('cards-row')?.addEventListener('click', e => {
+    const btn = e.target.closest('.hide-card-btn');
+    if (!btn) return;
+    hideCard(btn.dataset.cardType);
+  });
+
+  // Panel toggle
+  const mgBtn = document.getElementById('manage-cards-btn');
+  const panel = document.getElementById('cards-panel');
+  if (!mgBtn || !panel) return;
+
+  mgBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const opening = panel.style.display === 'none';
+    if (opening) renderCardsPanel();
+    panel.style.display = opening ? 'block' : 'none';
+  });
+
+  // Close on outside click
+  document.addEventListener('click', () => { if (panel) panel.style.display = 'none'; });
+
+  // Panel clicks: stop propagation (keeps panel open) + handle show/hide buttons
+  panel.addEventListener('click', e => {
+    e.stopPropagation();
+    const btn = e.target.closest('.cards-panel-btn');
+    if (!btn) return;
+    const type = btn.dataset.cardType;
+    if (btn.classList.contains('cards-panel-btn--show')) showCard(type);
+    else hideCard(type);
+  });
+}
+
+// =========================================================
 // REFRESH ALL + INIT
 // =========================================================
 
 async function refreshAll() {
-  ['weather-list', 'crypto-list', 'indices-global-list', 'forex-gbp-list'].forEach(setLoading);
-  await Promise.all([
-    refreshWeather(),
-    refreshCrypto(),
-    refreshFinnhubGroup('indices-global-list', CONFIG.indicesGlobal),
-    refreshForexCard('forex-gbp-list', 'GBP', CONFIG.forexGBP),
-  ]);
+  // Only refresh cards that are currently visible and have a data source
+  const active = CARD_REGISTRY.filter(c => !isCardHidden(c.type) && c.refresh);
+  active.forEach(c => { if (c.listId) setLoading(c.listId); });
+  await Promise.all(active.map(c => c.refresh()));
   updateTimestamp();
 }
 
@@ -796,9 +1153,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   tickClock();
   setInterval(tickClock, 1000);
 
+  // Apply stored show/hide state before anything renders
+  applyCardVisibility();
+
   // Card-level drag & drop reordering + inline editable titles
   initCardSortable();
   initCardTitles();
+
+  // Inject × hide buttons + wire manage-cards panel
+  initCardManagement();
+
+  // News feed selector menu
+  initNewsMenu();
 
   // Wire up delete handlers (event delegation — set up once)
   setupDeleteHandlers();

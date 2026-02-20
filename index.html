@@ -17,6 +17,12 @@
     <div class="d-flex align-items-center gap-2">
       <span id="last-updated" class="text-white-50 small"></span>
       <button id="refresh-btn" class="btn btn-sm btn-outline-light" title="Refresh data">&#x21BB;</button>
+      <div class="position-relative">
+        <button id="manage-cards-btn" class="btn btn-sm btn-outline-light" title="Manage cards">
+          <i class="bi bi-layout-columns"></i>
+        </button>
+        <div id="cards-panel" class="cards-panel" style="display:none"></div>
+      </div>
     </div>
   </nav>
 
@@ -85,6 +91,20 @@
               <h6 class="card-section-title" contenteditable="plaintext-only" spellcheck="false" data-title-key="title_forex_gbp">Forex vs GBP</h6>
             </div>
             <div class="ticker-list" id="forex-gbp-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- News -->
+      <div class="col" data-config-key="card_news">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <div class="card-header-row">
+              <span class="card-drag-handle"><i class="bi bi-grip-vertical"></i></span>
+              <h6 class="card-section-title" contenteditable="plaintext-only" spellcheck="false" data-title-key="title_news">News</h6>
+            </div>
+            <nav id="news-menu" class="news-menu"></nav>
+            <div id="news-list"></div>
           </div>
         </div>
       </div>

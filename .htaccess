@@ -1,0 +1,8 @@
+RewriteEngine On
+
+#Disable indexing of directories but allow access to individual files
+Options -Indexes
+
+#Autoredirect http to https - comment out for localhost
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

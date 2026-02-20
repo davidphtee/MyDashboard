@@ -708,6 +708,72 @@ async function loadConfig() {
 }
 
 // =========================================================
+// CARD-LEVEL DRAG & DROP
+// =========================================================
+
+function initCardSortable() {
+  const row = document.getElementById('cards-row');
+  if (!row) return;
+
+  // Re-order cards from saved config values
+  const cols = [...row.querySelectorAll('[data-config-key^="card_"]')];
+  cols.sort((a, b) => {
+    const oa = CONFIG[a.dataset.configKey] ?? Infinity;
+    const ob = CONFIG[b.dataset.configKey] ?? Infinity;
+    return oa - ob;
+  });
+  cols.forEach(el => row.appendChild(el));
+
+  window.Sortable.create(row, {
+    handle: '.card-drag-handle',
+    animation: 200,
+    ghostClass: 'sortable-ghost',
+    onEnd() {
+      row.querySelectorAll('[data-config-key^="card_"]').forEach((el, index) => {
+        const key = el.dataset.configKey;
+        CONFIG[key] = index;
+        saveConfig(key, index).catch(e => console.warn(`Card order save failed for ${key}:`, e.message));
+      });
+    },
+  });
+}
+
+// =========================================================
+// INLINE EDITABLE CARD TITLES
+// =========================================================
+
+function initCardTitles() {
+  document.querySelectorAll('[data-title-key]').forEach(el => {
+    const key = el.dataset.titleKey;
+
+    // Apply stored title if one exists in DB
+    if (typeof CONFIG[key] === 'string' && CONFIG[key].trim()) {
+      el.textContent = CONFIG[key];
+    }
+
+    let snapshot = ''; // text at focus time, for Escape restore
+
+    el.addEventListener('focus', () => { snapshot = el.textContent; });
+
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter')  { e.preventDefault(); el.blur(); }
+      if (e.key === 'Escape') { el.textContent = snapshot; el.blur(); }
+    });
+
+    el.addEventListener('blur', () => {
+      const newTitle = el.textContent.trim();
+      if (!newTitle) {
+        el.textContent = snapshot; // don't allow empty titles
+        return;
+      }
+      if (newTitle === snapshot) return; // nothing changed
+      CONFIG[key] = newTitle;
+      saveConfig(key, newTitle).catch(e => console.warn(`Title save failed for ${key}:`, e.message));
+    });
+  });
+}
+
+// =========================================================
 // REFRESH ALL + INIT
 // =========================================================
 
@@ -729,6 +795,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderClockZones();
   tickClock();
   setInterval(tickClock, 1000);
+
+  // Card-level drag & drop reordering + inline editable titles
+  initCardSortable();
+  initCardTitles();
 
   // Wire up delete handlers (event delegation — set up once)
   setupDeleteHandlers();

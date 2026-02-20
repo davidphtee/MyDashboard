@@ -21,13 +21,16 @@
   </nav>
 
   <div class="container-fluid p-3">
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-3">
+    <div id="cards-row" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-3">
 
       <!-- Clock -->
-      <div class="col">
+      <div class="col" data-config-key="card_clock">
         <div class="card h-100 shadow-sm">
           <div class="card-body">
-            <h6 class="card-section-title">Clock</h6>
+            <div class="card-header-row">
+              <span class="card-drag-handle"><i class="bi bi-grip-vertical"></i></span>
+              <h6 class="card-section-title" contenteditable="plaintext-only" spellcheck="false" data-title-key="title_clock">Clock</h6>
+            </div>
             <div id="clock-date" class="clock-date"></div>
             <div class="clock-zones" id="clock-zones"></div>
           </div>
@@ -35,40 +38,52 @@
       </div>
 
       <!-- Weather -->
-      <div class="col">
+      <div class="col" data-config-key="card_weather">
         <div class="card h-100 shadow-sm">
           <div class="card-body">
-            <h6 class="card-section-title">Weather</h6>
+            <div class="card-header-row">
+              <span class="card-drag-handle"><i class="bi bi-grip-vertical"></i></span>
+              <h6 class="card-section-title" contenteditable="plaintext-only" spellcheck="false" data-title-key="title_weather">Weather</h6>
+            </div>
             <div id="weather-list"></div>
           </div>
         </div>
       </div>
 
       <!-- Crypto -->
-      <div class="col">
+      <div class="col" data-config-key="card_crypto">
         <div class="card h-100 shadow-sm">
           <div class="card-body">
-            <h6 class="card-section-title">Crypto</h6>
+            <div class="card-header-row">
+              <span class="card-drag-handle"><i class="bi bi-grip-vertical"></i></span>
+              <h6 class="card-section-title" contenteditable="plaintext-only" spellcheck="false" data-title-key="title_crypto">Crypto</h6>
+            </div>
             <div class="ticker-list" id="crypto-list"></div>
           </div>
         </div>
       </div>
 
       <!-- Global Markets -->
-      <div class="col">
+      <div class="col" data-config-key="card_markets">
         <div class="card h-100 shadow-sm">
           <div class="card-body">
-            <h6 class="card-section-title">Global Markets</h6>
+            <div class="card-header-row">
+              <span class="card-drag-handle"><i class="bi bi-grip-vertical"></i></span>
+              <h6 class="card-section-title" contenteditable="plaintext-only" spellcheck="false" data-title-key="title_markets">Global Markets</h6>
+            </div>
             <div class="ticker-list" id="indices-global-list"></div>
           </div>
         </div>
       </div>
 
       <!-- Forex vs GBP -->
-      <div class="col">
+      <div class="col" data-config-key="card_forex_gbp">
         <div class="card h-100 shadow-sm">
           <div class="card-body">
-            <h6 class="card-section-title">Forex <span class="fw-normal text-lowercase ms-1" style="font-size:0.8em;">vs GBP</span></h6>
+            <div class="card-header-row">
+              <span class="card-drag-handle"><i class="bi bi-grip-vertical"></i></span>
+              <h6 class="card-section-title" contenteditable="plaintext-only" spellcheck="false" data-title-key="title_forex_gbp">Forex vs GBP</h6>
+            </div>
             <div class="ticker-list" id="forex-gbp-list"></div>
           </div>
         </div>

@@ -213,3 +213,42 @@
   padding-top: 0.5rem;
   border-top: 1px solid #f0f0f0;
 }
+
+/* ── Card drag & editable title ── */
+.card-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.1rem;
+}
+
+.card-drag-handle {
+  cursor: grab;
+  color: #ddd;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  line-height: 1;
+  user-select: none;
+}
+
+.card-drag-handle:active { cursor: grabbing; }
+
+.card-section-title[contenteditable] {
+  outline: none;
+  border-radius: 3px;
+  padding: 0.05rem 0.2rem;
+  margin-left: -0.2rem; /* cancel padding so text aligns flush */
+  min-width: 2rem;
+  cursor: default;
+}
+
+.card-section-title[contenteditable]:hover {
+  color: #888;
+  cursor: text;
+}
+
+.card-section-title[contenteditable]:focus {
+  background: #f0f0f0;
+  color: #555;
+  cursor: text;
+}

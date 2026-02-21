@@ -774,7 +774,7 @@ function renderClockZones() {
 
 function updateTimestamp() {
   const el = document.getElementById('last-updated');
-  if (el) el.textContent = 'Updated ' + new Date().toLocaleTimeString();
+  if (el) el.textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB', {hour12: false});
 }
 
 // =========================================================
